@@ -1,0 +1,51 @@
+name: SupaForge Drift Check
+description: Find drift between Supabase environments — schema, RLS, roles, auth, storage and more — and fail the build on it.
+author: Akal Software Ltd
+branding:
+  icon: git-pull-request
+  color: green
+
+inputs:
+  args:
+    description: >
+      Arguments for the supaforge CLI. The default compares the config's
+      source and target and fails on critical drift; add --fail-on=warning
+      or --fail-on=any to be stricter, or --check / --skip to narrow it.
+    default: diff --ci
+  version:
+    description: '@akal/supaforge version, or a dist-tag.'
+    default: latest
+  working-directory:
+    description: Directory holding supaforge.config.json.
+    default: .
+  node-version:
+    description: Node.js version to run it on (20 or newer). Leave empty to use the runner's.
+    default: '22'
+  report:
+    description: Where to write the JSON report (under --ci or --json). Empty to skip.
+    default: supaforge-report.json
+
+outputs:
+  exit-code:
+    description: '0 clean, 1 drift at or above the threshold, 2 could not run.'
+    value: ${{ steps.run.outputs.exit-code }}
+  report:
+    description: Path of the JSON report, when one was written.
+    value: ${{ steps.run.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.node-version != ''
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        SUPAFORGE_VERSION: ${{ inputs.version }}
+        SUPAFORGE_ARGS: ${{ inputs.args }}
+        SUPAFORGE_REPORT: ${{ inputs.report }}
+      run: '"$GITHUB_ACTION_PATH/run.sh"'

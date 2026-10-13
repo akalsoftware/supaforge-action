@@ -1,0 +1,64 @@
+name: Test
+
+# Runs the action from this checkout against two real Postgres databases: once
+# where they match (must pass) and once where they drift (must fail, with a
+# report and a summary).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    services:
+      staging:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: pw }
+        ports: ['5433:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 20
+      production:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: pw }
+        ports: ['5434:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 20
+    env:
+      STAGING_DATABASE_URL: postgres://postgres:pw@localhost:5433/postgres
+      PRODUCTION_DATABASE_URL: postgres://postgres:pw@localhost:5434/postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Matching databases pass
+        id: clean
+        uses: ./
+        with:
+          working-directory: test
+          args: diff --ci --fail-on=any --skip=storage
+
+      - name: Drift on staging
+        run: psql "$STAGING_DATABASE_URL" -c 'CREATE TABLE plans (id int PRIMARY KEY, name text)'
+
+      - name: Drift fails the step
+        id: drift
+        continue-on-error: true
+        uses: ./
+        with:
+          working-directory: test
+          args: diff --ci --fail-on=warning --skip=storage
+
+      - name: Check the outcomes
+        env:
+          CLEAN: ${{ steps.clean.outputs.exit-code }}
+          DRIFT: ${{ steps.drift.outputs.exit-code }}
+          OUTCOME: ${{ steps.drift.outcome }}
+          REPORT: test/${{ steps.drift.outputs.report }}
+        run: |
+          set -e
+          test "$CLEAN" = 0
+          test "$DRIFT" = 1
+          test "$OUTCOME" = failure
+          jq -e '.warningIssues | map(.title) | index("Table missing: public.plans")' "$REPORT"
