@@ -19,7 +19,7 @@ inputs:
     description: Directory holding supaforge.config.json.
     default: .
   node-version:
-    description: Node.js version to run it on (20 or newer). Leave empty to use the runner's.
+    description: Node.js version to run it on (22 or newer). Leave empty to use the runner's.
     default: '22'
   report:
     description: Where to write the JSON report (under --ci or --json). Empty to skip.

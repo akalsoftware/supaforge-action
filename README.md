@@ -56,7 +56,7 @@ Read-only by default: it compares and reports, and changes nothing.
 | `args` | `diff --ci` | SupaForge CLI arguments. Add `--fail-on=warning` or `--fail-on=any` to be stricter, `--check` / `--skip` to narrow it. |
 | `version` | `latest` | `@akal/supaforge` version or dist-tag. Pin one for repeatable runs. |
 | `working-directory` | `.` | Where `supaforge.config.json` lives. |
-| `node-version` | `22` | Node.js 20 or newer. Empty uses the runner's. |
+| `node-version` | `22` | Node.js 22 or newer. Empty uses the runner's. |
 | `report` | `supaforge-report.json` | Where the JSON report goes, relative to `working-directory`. Empty to skip. |
 
 ## Outputs
